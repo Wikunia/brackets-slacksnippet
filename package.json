@@ -1,0 +1,12 @@
+{
+    "name": "slacksnippet",
+    "title": "Slack Snippet",
+    "description": "Push code snippets to a slack channel",
+    "homepage": "https://github.com/Wikunia/brackets-slacksnippet",
+    "version": "0.1.0",
+    "author": "Ole Kröger",
+    "license": "MIT",
+    "engines": {
+        "brackets": ">=0.24.0"
+    }
+}

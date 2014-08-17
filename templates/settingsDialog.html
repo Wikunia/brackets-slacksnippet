@@ -1,0 +1,20 @@
+<div id="slack-settings" class="slack-manager new-slack-dialog template modal">
+    <div class="modal-header">
+        <h1 class="dialog-title">{{SLACK_SETTINGS}}</h1>
+    </div>
+    <div class="modal-body">
+        <div class="dialog-message">
+           	You need a token to push snippets to slack.com: <br>
+            <input id="slack-token" type="text" name="description" placeholder="{{SLACK_TOKEN_HERE}}">
+            <span id="token-error" class="error"></span>
+            <br>
+            <h2>How to get the token</h2>
+            <ul>
+            	<li>Login at <a href="http://slack.com">slack.com</a></li>
+            	<li>and get your token here: <a href="https://api.slack.com/#auth">https://api.slack.com/#auth</a></li>
+            	<li>Snip!</li>
+            </ul>
+            <button id="slack-save" class="btn btn-default" id="add-file">Save</button>
+        </div>
+    </div>
+</div>

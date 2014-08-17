@@ -1,0 +1,20 @@
+<div id="slack-manager" class="slack-manager new-slack-dialog template modal">
+    <div class="modal-header">
+        <h1 class="dialog-title">{{CREATE_NEW_SLACK}}</h1>
+    </div>
+    <div class="modal-body">
+        <div class="dialog-message">
+           <span id="snipit-error" class="error"></span>
+            <input id="slack-title" type="text" name="description" placeholder="{{SLACK_TITLE_HERE}}">
+            <br>
+            <select name="slack-channel" size="1" id="slack-channel"></select>
+            <div id="prototype-file">
+                <div class="file">
+                    <textarea id="slack-content" class="content" placeholder="{{SLACK_CONTENT_HERE}}"></textarea>
+                </div>
+            </div>
+            <button id="slack-snipit" class="btn btn-default" id="add-file">Snip it!</button>
+            <button id="slack-change-token" class="btn btn-default" id="add-file">Change token</button>
+        </div>
+    </div>
+</div>
