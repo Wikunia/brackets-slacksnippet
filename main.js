@@ -33,11 +33,17 @@ define(function (require, exports, module) {
 
 	var token, snippet, filetype;
 	var file;
+	var settingsChannel;
 
-    // Post a new slack
+    /**
+     * Push a snippet to slack
+     */
     function snipIt() {
 		$dialog.find("#snipit-error").css("display","none");
 		if (token) {
+		   // save the channel for next time
+		   addSettings("channels",ProjectManager.getProjectRoot()._path,$dialog.find("#slack-channel").val());
+
 		   $.post("https://slack.com/api/files.upload", {
 				token: token,
 				filetype: filetype,
@@ -57,6 +63,31 @@ define(function (require, exports, module) {
 		}
     }
 
+	/**
+	 * Add a key value pair to the setting inside type key
+	 * @param {string} type settings key
+	 * @param {string} key key inside settings.type
+	 * @param {string} value value of the settings.type.key
+	 */
+	function addSettings(type,key,value) {
+		var settingsRead = FileUtils.readAsText(file);
+		settingsRead.done(function(settings) {
+			if (settings != "") {
+				settings = JSON.parse(settings);
+				if (!(type in settings)) {
+					settings[type] = {};
+				}
+				settings[type][key] = value;
+				var json = JSON.stringify(settings);
+				FileUtils.writeText(file,json);
+			}
+		});
+
+	}
+
+	/**
+	 * save the token inside the settings file
+	 */
 	function saveToken() {
 		$settingsDialog.find("#token-error").css("display","none");
 		// testToken
@@ -78,6 +109,10 @@ define(function (require, exports, module) {
 		});
 	}
 
+	/**
+	 * check if token is correct
+	 * @returns {$.Deffered()} true or error code
+	 */
 	function errorToken() {
 		var result = $.Deferred();
 		$.post("https://slack.com/api/auth.test", {
@@ -92,6 +127,9 @@ define(function (require, exports, module) {
 		return result;
 	}
 
+	/**
+	 * open the send snippet panel
+	 */
     function openPanel() {
 		 dialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(dialogTemplate, Strings));
          $dialog = dialog.getElement();
@@ -107,7 +145,7 @@ define(function (require, exports, module) {
 
 		$dialog.find("#slack-content").val(snippet);
 
-		addChannelsAndDMs();
+		addChannels();
         // Add events handler to slack Manager panel
         $dialog
             .on("click", "#slack-snipit", function() {
@@ -119,6 +157,9 @@ define(function (require, exports, module) {
 			});
     }
 
+	/**
+	 * open the settings panel
+	 */
 	function openSettings() {
 		saveSnippet();
 		// create slacksnippet.json
@@ -128,8 +169,6 @@ define(function (require, exports, module) {
 		 settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
          $settingsDialog = settingsDialog.getElement();
 
-
-
         // Add events handler to slack Manager panel
          $settingsDialog
             .on("click", "#slack-save", function() {
@@ -138,7 +177,11 @@ define(function (require, exports, module) {
             });
 	}
 
-	function addChannelsAndDMs() {
+	/**
+	 * add channels to #slack-channel
+	 * if a channel was used before for the current basePath => first
+	 */
+	function addChannels() {
 		if (token != "") {
 			var select = $dialog.find('#slack-channel');
 			$('option', select).remove();
@@ -149,14 +192,20 @@ define(function (require, exports, module) {
 				if (channels.ok) {
 					$.each(channels.channels, function(key, channel) {
 						var option = new Option('#'+channel.name, channel.id);
-						select.append($(option));
+						if (channel.id == settingsChannel) {
+							select.prepend($(option));
+						} else {
+							select.append($(option));
+						}
 					});
 				}
 			});
 		}
 	}
 
-
+	/**
+	 * save the current selection and the filetype (snippet & filetype)
+	 */
 	function saveSnippet() {
 		var editor = EditorManager.getFocusedEditor();
 		if (editor) {
@@ -165,6 +214,12 @@ define(function (require, exports, module) {
 		}
 	}
 
+	/**
+	 * handle the shortcut Alt+M
+	 * - create the settings file
+	 * - save the snippet
+	 * - openPanel or openSettings
+	 */
 	function handleSnippet() {
 		// create slacksnippet.json
 		createSettingsFile();
@@ -176,6 +231,12 @@ define(function (require, exports, module) {
 			if (settings != "") {
 				settings = JSON.parse(settings);
 				token = settings.token;
+				if ("channels" in settings) {
+					var basePath = ProjectManager.getProjectRoot()._path;
+					if (basePath in settings.channels) {
+						settingsChannel = settings.channels[basePath];
+					}
+				}
 				openPanel();
 			} else {
 				openSettings();
@@ -187,6 +248,9 @@ define(function (require, exports, module) {
 		});
 	}
 
+	/**
+	 * Create the settingsFile and creat a directory Slack in the documents folder
+	 */
 	function createSettingsFile() {
 		var dir = brackets.app.getUserDocumentsDirectory()+'/Slack/';
 			file = dir+'slacksnippet.json';
