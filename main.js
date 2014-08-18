@@ -8,6 +8,7 @@ define(function (require, exports, module) {
 
     var CommandManager          = brackets.getModule("command/CommandManager"),
         DocumentManager         = brackets.getModule("document/DocumentManager"),
+       	ProjectManager          = brackets.getModule("project/ProjectManager"),
         PreferencesManager      = brackets.getModule("preferences/PreferencesManager"),
         Dialogs                 = brackets.getModule("widgets/Dialogs"),
         EditorManager           = brackets.getModule("editor/EditorManager"),
@@ -45,7 +46,6 @@ define(function (require, exports, module) {
 			   	title: $dialog.find("#slack-title").val()
 			}, function(data) {
 				if (!data.ok) {
-					console.log(data);
 					// error
 					$dialog.find("#snipit-error").html("Error: "+error);
 		  			$dialog.find("#snipit-error").css("display","block");
@@ -86,7 +86,6 @@ define(function (require, exports, module) {
 			if (test.ok) {
 				result.resolve(true);
 			} else {
-				console.log(test);
 				result.reject(test.error);
 			}
 		});
@@ -94,13 +93,18 @@ define(function (require, exports, module) {
 	}
 
     function openPanel() {
-		console.log('openPanel');
-
 		 dialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(dialogTemplate, Strings));
          $dialog = dialog.getElement();
 
+		// get the current Project root and get the relative filename in the title
+		var basePath = ProjectManager.getProjectRoot()._path;
+		var relativeFilename = FileUtils.getRelativeFilename(basePath,DocumentManager.getCurrentDocument().file._path);
+		if (!relativeFilename) {
+			relativeFilename = DocumentManager.getCurrentDocument().file._name;
+		}
+		$dialog.find("#slack-title").val('Brackets Snippet <'+relativeFilename+'>');
 
-		$dialog.find("#slack-title").val('Brackets Snippet <'+DocumentManager.getCurrentDocument().file._name+'>');
+
 		$dialog.find("#slack-content").val(snippet);
 
 		addChannelsAndDMs();
@@ -120,14 +124,12 @@ define(function (require, exports, module) {
 		// create slacksnippet.json
 		createSettingsFile();
 
-		console.log('openSettings');
 
 		 settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
          $settingsDialog = settingsDialog.getElement();
 
 
 
-		console.log( $settingsDialog);
         // Add events handler to slack Manager panel
          $settingsDialog
             .on("click", "#slack-save", function() {
@@ -138,17 +140,12 @@ define(function (require, exports, module) {
 
 	function addChannelsAndDMs() {
 		if (token != "") {
-			console.log(token);
-			console.log(token.length);
 			var select = $dialog.find('#slack-channel');
-			console.log($dialog);
-			console.log(select);
 			$('option', select).remove();
 
 			$.post("https://slack.com/api/channels.list", {
 					token: token
 			}, function(channels) {
-				console.log(channels);
 				if (channels.ok) {
 					$.each(channels.channels, function(key, channel) {
 						var option = new Option('#'+channel.name, channel.id);
@@ -187,7 +184,6 @@ define(function (require, exports, module) {
 			if (error == "NotFound") {
 				openSettings();
 			}
-			console.log(error);
 		});
 	}
 
