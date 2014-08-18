@@ -104,7 +104,14 @@ define(function (require, exports, module) {
 			   openPanel();
 		   });
 		}).fail(function(error) {
-			$settingsDialog.find("#token-error").html("Error: "+error);
+			switch(error) {
+				case "connection":
+					$settingsDialog.find("#token-error").html("Error: Please check your internet connection");
+					break;
+				default:
+					$settingsDialog.find("#token-error").html("Error: "+error);
+
+			}
 			$settingsDialog.find("#token-error").css("display","block");
 		});
 	}
@@ -123,8 +130,11 @@ define(function (require, exports, module) {
 			} else {
 				result.reject(test.error);
 			}
+		})
+		.fail(function() {
+			result.reject("connection");
 		});
-		return result;
+		return result.promise();
 	}
 
 	/**
@@ -142,19 +152,32 @@ define(function (require, exports, module) {
 		}
 		$dialog.find("#slack-title").val('Brackets Snippet <'+relativeFilename+'>');
 
-
 		$dialog.find("#slack-content").val(snippet);
 
-		addChannels();
+		var channelsDef = addChannels();
         // Add events handler to slack Manager panel
-        $dialog
-            .on("click", "#slack-snipit", function() {
-                snipIt();
-            })
-			.on("click", "#slack-change-token", function() {
-				dialog.close();
-				openSettings();
-			});
+		channelsDef.done(function() {
+			$dialog
+				.on("click", "#slack-snipit", function() {
+					snipIt();
+				})
+				.on("click", "#slack-change-token", function() {
+					dialog.close();
+					openSettings();
+				});
+		})
+		.fail(function(error) {
+			$dialog.find("#snipit-error").css("display","none");
+			switch(error) {
+				case "connection":
+					$dialog.find("#snipit-error").html("Error: Please check your internet connection");
+					break;
+				default:
+					$dialog.find("#snipit-error").html("Error: "+error);
+
+			}
+			$dialog.find("#snipit-error").css("display","block");
+		});
     }
 
 	/**
@@ -165,9 +188,8 @@ define(function (require, exports, module) {
 		// create slacksnippet.json
 		createSettingsFile();
 
-
-		 settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
-         $settingsDialog = settingsDialog.getElement();
+		settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
+        $settingsDialog = settingsDialog.getElement();
 
         // Add events handler to slack Manager panel
          $settingsDialog
@@ -180,8 +202,10 @@ define(function (require, exports, module) {
 	/**
 	 * add channels to #slack-channel
 	 * if a channel was used before for the current basePath => first
+	 * @returns {$.Deferred()} true or error code
 	 */
 	function addChannels() {
+		var result = $.Deferred();
 		if (token != "") {
 			var select = $dialog.find('#slack-channel');
 			$('option', select).remove();
@@ -198,9 +222,15 @@ define(function (require, exports, module) {
 							select.append($(option));
 						}
 					});
+					result.resolve(true);
+				} else {
+					result.reject(channels.error);
 				}
+			}).fail(function() {
+				result.reject("connection");
 			});
 		}
+		return result.promise();
 	}
 
 	/**
