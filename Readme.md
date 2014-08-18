@@ -7,7 +7,7 @@ If you find a bug please [open an issue](https://github.com/Wikunia/brackets-sla
 
 
 ## Usage:
-Select your code snippet and use the shortcut `Alt+M` to push your code to slack. ("Snip it!")    
+Select your code snippet and use the shortcut `Alt+S` to push your code to slack. ("Snip it!")    
 Your token will be saved in a file inside your `documents` folder. (It isn't encrypted)
 
 
