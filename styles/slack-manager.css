@@ -1,3 +1,10 @@
+#Toolbar-SlackSnippet {
+	background: url("../img/slack.png") 0 0 no-repeat;
+	background-size:24px 24px;
+	width: 24px;
+	height: 24px;
+}
+
 .new-slack-dialog .nav,
 .success-slack-dialog .nav {
   border-bottom: 1px solid #c3c6c5;

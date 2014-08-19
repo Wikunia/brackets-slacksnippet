@@ -299,6 +299,7 @@ define(function (require, exports, module) {
 	 // First, register a command - a UI-less object associating an id to a handler
     var MY_COMMAND_ID = "slacksnippet.handle";   // package-style naming to avoid collisions
     CommandManager.register("Slack Snippet", MY_COMMAND_ID, handleSnippet);
+	$("<a href='#' id='Toolbar-SlackSnippet' title='Snip it!'></a>").appendTo("#main-toolbar div.buttons").on("click", handleSnippet);
 
     // We could also add a key binding at the same time:
     KeyBindingManager.addBinding(MY_COMMAND_ID, "Alt-S");
