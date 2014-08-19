@@ -5,7 +5,7 @@
     "homepage": "https://github.com/Wikunia/brackets-slacksnippet",
     "version": "0.1.4",
     "author": "Ole Kröger",
-    "license": "MIT",
+    "license": "Creative Commons v3.0",
     "engines": {
         "brackets": ">=0.24.0"
     }
