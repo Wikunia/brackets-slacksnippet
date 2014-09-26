@@ -31,9 +31,11 @@ define(function (require, exports, module) {
 		GM_PANEL                = PREFIX + ".panel",
         TOGGLE_PANEL            = PREFIX + ".run";
 
-	var token, snippet, filetype;
-	var file;
+	var token = "", snippet, filetype;
+	var settingsFile;
 	var settingsChannel;
+	var settingsToken;
+	var storedSettings;
 
     /**
      * Push a snippet to slack
@@ -41,8 +43,16 @@ define(function (require, exports, module) {
     function snipIt() {
 		$dialog.find("#snipit-error").css("display","none");
 		if (token) {
-		   // save the channel for next time
-		   addSettings("channels",ProjectManager.getProjectRoot()._path,$dialog.find("#slack-channel").val());
+			// save the channel for next time
+			addSettings("local","token",$dialog.find("#slack-team").val());
+			addSettings("local","channel",$dialog.find("#slack-channel").val());
+			// save the settings
+			var json = JSON.stringify(storedSettings);
+			var write = FileUtils.writeText(settingsFile,json);
+			write.fail(function(error) {
+				alert("It was not possible to store your settings :(", error);
+			});
+
 
 		   $.post("https://slack.com/api/files.upload", {
 				token: token,
@@ -64,45 +74,54 @@ define(function (require, exports, module) {
     }
 
 	/**
-	 * Add a key value pair to the setting inside type key
-	 * @param {string} type settings key
-	 * @param {string} key key inside settings.type
+	 * Add a key value pair to the settings file (set scope to local to store the pair only for current path)
+	 * @param {String} scope local or global (local => in basePath array)
+	 * @param {string} key   key inside settings.type
 	 * @param {string} value value of the settings.type.key
 	 */
-	function addSettings(type,key,value) {
-		var settingsRead = FileUtils.readAsText(file);
-		settingsRead.done(function(settings) {
-			if (settings != "") {
-				settings = JSON.parse(settings);
-				if (!(type in settings)) {
-					settings[type] = {};
-				}
-				settings[type][key] = value;
-				var json = JSON.stringify(settings);
-				FileUtils.writeText(file,json);
+	function addSettings(scope,key,value) {
+		if (scope == "local") {
+			var basePath = ProjectManager.getProjectRoot()._path;
+			if (!(basePath in storedSettings)) {
+				storedSettings[basePath] = {};
 			}
-		});
-
+			storedSettings[basePath][key] = value;
+		} else { // global
+			storedSettings[key] = value;
+		}
 	}
 
 	/**
 	 * save the token inside the settings file
 	 */
-	function saveToken() {
+	function saveSettings() {
 		$settingsDialog.find("#token-error").css("display","none");
-		// testToken
-		var test = errorToken();
+		var tokens = [];
+		// get all tokens
+		$settingsDialog.find("#slack-token-list").children().each(function(index) {
+			if ($(this).val() != "") { tokens.push($(this).val()); }
+		});
 
-		test.done(function() {
-		   var jsonToken = '{"token":"'+token+'"}';
-		   var writeToken = FileUtils.writeText(file,jsonToken);
-		   writeToken.fail(function(writeError) {
-			   $settingsDialog.find("#token-error").html("Error: "+writeError);
-			   $settingsDialog.find("#token-error").css("display","block");
-		   }).done(function() {
-			   settingsDialog.close();
-			   openPanel();
-		   });
+
+
+		// testToken
+		var test = testTokens(tokens);
+
+		test.done(function(teams) {
+				var jsonSettings = {};
+				jsonSettings.teams = [];
+				for (var i = 0; i < tokens.length; i++) {
+					jsonSettings.teams.push({'token':tokens[i],'name':teams[i]});
+				}
+				jsonSettings = JSON.stringify(jsonSettings);
+				var writeToken = FileUtils.writeText(settingsFile,jsonSettings);
+				writeToken.fail(function(writeError) {
+				   $settingsDialog.find("#token-error").html("Error: "+writeError);
+				   $settingsDialog.find("#token-error").css("display","block");
+				}).done(function() {
+				   settingsDialog.close();
+				   openPanel();
+				});
 		}).fail(function(error) {
 			switch(error) {
 				case "connection":
@@ -114,21 +133,53 @@ define(function (require, exports, module) {
 			}
 			$settingsDialog.find("#token-error").css("display","block");
 		});
+
+	}
+
+	/**
+	 * Check if every token is correct
+	 * @param   {Array}    tokens all tokens
+	 * @param   {Number}   index  [optional:0] check the tokens starting with this index
+	 * @returns {Deferred} reject if at least one token is wrong else resolve true
+	 */
+	function testTokens(tokens,teams,index) {
+		if (typeof index == "undefined") index = 0;
+		if (typeof teams == "undefined") teams = [];
+		var result = $.Deferred();
+		if (tokens.length == 0) result.reject("empty token");
+		// test the token with index index
+		var test = testToken(tokens[index],index);
+		test.done(function(response) {
+			teams[index] = response.team;
+			// check next token if there is another one
+			if (tokens.length > index+1) {
+				testTokens(tokens,teams,index+1)
+				.done(function(teams) {
+					result.resolve(teams);
+				});
+			} else {
+ 				result.resolve(teams);
+			}
+		})
+		.fail(function(e) {
+			result.reject(e);
+		});
+		return result.promise();
 	}
 
 	/**
 	 * check if token is correct
 	 * @returns {$.Deffered()} true or error code
 	 */
-	function errorToken() {
+	function testToken(token,index) {
 		var result = $.Deferred();
 		$.post("https://slack.com/api/auth.test", {
 			token: token
 		}, function(test) {
 			if (test.ok) {
-				result.resolve(true);
+				result.resolve(test);
 			} else {
-				result.reject(test.error);
+				result.reject('Token Nr. '+parseInt(index+1)+' '+test.error);
 			}
 		})
 		.fail(function() {
@@ -154,17 +205,88 @@ define(function (require, exports, module) {
 
 		$dialog.find("#slack-content").val(snippet);
 
-		var channelsDef = addChannels();
+		// list all teams (saved in the settings file) #slack-team
+		listTeams();
+		changeChannels();
+
+		$dialog
+			.on("click", "#slack-change-token", function() {
+				dialog.close();
+				openSettings();
+			})
+			.on("change", "#slack-team", function() {
+				token = $dialog.find("#slack-team").val();
+				// update the channels list!
+				changeChannels();
+			});
+    }
+
+	/**
+	 * A user can have more than one Slack acccount so it must be possible to add another token
+	 */
+	function addTokenInput() {
+		$settingsDialog.find("#slack-token-list").append(
+			Mustache.render('<input type="text" name="description" placeholder="{{SLACK_TOKEN_HERE}}">', Strings)
+		);
+	}
+
+	/**
+	 * open the settings panel
+	 */
+	function openSettings() {
+		saveSnippet();
+		// create slacksnippet.json
+		createSettingsFile();
+
+		settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
+        $settingsDialog = settingsDialog.getElement();
+		// fill all tokens
+		var index = 0;
+		$.each(storedSettings.teams, function(index,team) {
+			$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").val(team.token);
+			$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").attr("title",team.name);
+			addTokenInput();
+			index++;
+		});
+
+        // Add events handler to slack Manager panel
+        $settingsDialog
+            .on("click", "#slack-save", function() {
+                saveSettings();
+           });
+		$settingsDialog
+            .on("click", "#slack-addToken", function() {
+                addTokenInput();
+           });
+	}
+
+	function listTeams() {
+		var select = $dialog.find('#slack-team');
+		$('option', select).remove();
+
+		$.each(storedSettings.teams, function(index,team) {
+			if (token == "") { token = team.token; }
+			var option = new Option(team.name, team.token);
+			// last used token for this path should be the first token
+			if (team.token == settingsToken) {
+				token = team.token;
+				select.prepend($(option));
+			} else {
+				select.append($(option));
+			}
+		});
+	}
+
+	function changeChannels() {
+		$dialog.off("click", "#slack-snipit");
+
+		var channelsDef = listChannels();
         // Add events handler to slack Manager panel
 		channelsDef.done(function() {
 			$dialog
 				.on("click", "#slack-snipit", function() {
 					snipIt();
 				})
-				.on("click", "#slack-change-token", function() {
-					dialog.close();
-					openSettings();
-				});
 		})
 		.fail(function(error) {
 			$dialog.find("#snipit-error").css("display","none");
@@ -178,25 +300,6 @@ define(function (require, exports, module) {
 			}
 			$dialog.find("#snipit-error").css("display","block");
 		});
-    }
-
-	/**
-	 * open the settings panel
-	 */
-	function openSettings() {
-		saveSnippet();
-		// create slacksnippet.json
-		createSettingsFile();
-
-		settingsDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(settingsTemplate, Strings));
-        $settingsDialog = settingsDialog.getElement();
-
-        // Add events handler to slack Manager panel
-         $settingsDialog
-            .on("click", "#slack-save", function() {
-				token = $settingsDialog.find("#slack-token").val();
-                saveToken();
-            });
 	}
 
 	/**
@@ -204,18 +307,19 @@ define(function (require, exports, module) {
 	 * if a channel was used before for the current basePath => first
 	 * @returns {$.Deferred()} true or error code
 	 */
-	function addChannels() {
+	function listChannels() {
 		var result = $.Deferred();
 		if (token != "") {
 			var select = $dialog.find('#slack-channel');
 			$('option', select).remove();
 
 			$.post("https://slack.com/api/channels.list", {
-					token: token
+				token: token
 			}, function(channels) {
 				if (channels.ok) {
 					$.each(channels.channels, function(key, channel) {
 						var option = new Option('#'+channel.name, channel.id);
+						// settingsChannel is the channel that was used the last time for this basePath
 						if (channel.id == settingsChannel) {
 							select.prepend($(option));
 						} else {
@@ -256,18 +360,35 @@ define(function (require, exports, module) {
 		saveSnippet();
 
 		// check if token exists else show settings
-		var savedToken = FileUtils.readAsText(file);
+		var savedToken = FileUtils.readAsText(settingsFile);
 		savedToken.done(function(settings) {
 			if (settings != "") {
 				settings = JSON.parse(settings);
-				token = settings.token;
-				if ("channels" in settings) {
+				if ("token" in settings) {
+					// old version
+					var tokens = [settings.token];
+					var test = testTokens([settings.token]);
+
+					test.done(function(teams) {
+							settings = {};
+							settings.teams = [];
+							settings.teams.push({'token':tokens[0],'name':teams[0]});
+							storedSettings = settings;
+							settings = JSON.stringify(settings);
+							var writeToken = FileUtils.writeText(settingsFile,settings);
+							openPanel();
+					}).fail(function() {
+						openSettings();
+					});
+				} else {
+					storedSettings = settings;
 					var basePath = ProjectManager.getProjectRoot()._path;
-					if (basePath in settings.channels) {
-						settingsChannel = settings.channels[basePath];
+					if (basePath in settings) {
+						settingsToken   = settings[basePath].token;
+						settingsChannel = settings[basePath].channel;
 					}
+					openPanel();
 				}
-				openPanel();
 			} else {
 				openSettings();
 			}
@@ -279,14 +400,14 @@ define(function (require, exports, module) {
 	}
 
 	/**
-	 * Create the settingsFile and creat a directory Slack in the documents folder
+	 * Create the settingsFile and create a directory Slack in the documents folder
 	 */
 	function createSettingsFile() {
 		var dir = brackets.app.getUserDocumentsDirectory()+'/Slack/';
-			file = dir+'slacksnippet.json';
+			settingsFile = dir+'slacksnippet.json';
 			dir = FileSystem.getDirectoryForPath(dir);
 			dir.create();
-			file = FileSystem.getFileForPath(file);
+			settingsFile = FileSystem.getFileForPath(settingsFile);
 	}
 
 	function init() {
@@ -301,8 +422,7 @@ define(function (require, exports, module) {
     CommandManager.register("Slack Snippet", MY_COMMAND_ID, handleSnippet);
 	$("<a href='#' id='Toolbar-SlackSnippet' title='Snip it!'></a>").appendTo("#main-toolbar div.buttons").on("click", handleSnippet);
 
-    // We could also add a key binding at the same time:
     KeyBindingManager.addBinding(MY_COMMAND_ID, "Alt-S");
-    // (Note: "Ctrl" is automatically mapped to "Cmd" on Mac)
+
 
 });

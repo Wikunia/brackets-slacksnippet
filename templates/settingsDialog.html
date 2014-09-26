@@ -5,7 +5,10 @@
     <div class="modal-body">
         <div class="dialog-message">
            	You need a token to push snippets to slack.com: <br>
-            <input id="slack-token" type="text" name="description" placeholder="{{SLACK_TOKEN_HERE}}">
+           	<div id="slack-token-list">
+            	<input type="text" name="description" placeholder="{{SLACK_TOKEN_HERE}}">
+            </div>
+            <button id="slack-addToken" class="btn btn-default" id="add-file">Add another token</button>
             <span id="token-error" class="error"></span>
             <br>
             <h2>How to get the token</h2>
