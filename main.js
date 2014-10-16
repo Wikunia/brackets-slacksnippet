@@ -108,12 +108,12 @@ define(function (require, exports, module) {
 		var test = testTokens(tokens);
 
 		test.done(function(teams) {
-				var jsonSettings = {};
-				jsonSettings.teams = [];
+				storedSettings 			= {};
+				storedSettings.teams 	= [];
 				for (var i = 0; i < tokens.length; i++) {
-					jsonSettings.teams.push({'token':tokens[i],'name':teams[i]});
+					storedSettings.teams.push({'token':tokens[i],'name':teams[i]});
 				}
-				jsonSettings = JSON.stringify(jsonSettings);
+				var jsonSettings = JSON.stringify(storedSettings);
 				var writeToken = FileUtils.writeText(settingsFile,jsonSettings);
 				writeToken.fail(function(writeError) {
 				   $settingsDialog.find("#token-error").html("Error: "+writeError);
@@ -242,12 +242,14 @@ define(function (require, exports, module) {
         $settingsDialog = settingsDialog.getElement();
 		// fill all tokens
 		var index = 0;
-		$.each(storedSettings.teams, function(index,team) {
-			$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").val(team.token);
-			$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").attr("title",team.name);
-			addTokenInput();
-			index++;
-		});
+		if (storedSettings && "teams" in storedSettings) {
+			$.each(storedSettings.teams, function(index,team) {
+				$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").val(team.token);
+				$settingsDialog.find("#slack-token-list").children("input:eq("+index+")").attr("title",team.name);
+				addTokenInput();
+				index++;
+			});
+		}
 
         // Add events handler to slack Manager panel
         $settingsDialog
@@ -263,6 +265,7 @@ define(function (require, exports, module) {
 	function listTeams() {
 		var select = $dialog.find('#slack-team');
 		$('option', select).remove();
+
 
 		$.each(storedSettings.teams, function(index,team) {
 			if (token == "") { token = team.token; }
