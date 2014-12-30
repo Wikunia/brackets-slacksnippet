@@ -42,3 +42,17 @@
 	display:none;
 	color:red;
 }
+
+.clearFloat {
+	clear: both;	
+}
+
+.slack-images {
+	cursor: pointer;
+	padding: 5px;
+	float: left;
+}
+
+.slack-code {
+		
+}

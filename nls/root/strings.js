@@ -9,4 +9,5 @@ define({
 	SLACK_CONTENT_HERE:			 "Your snippet",
 	SLACK_TITLE_HERE:			 "Snippet title",
 	SLACK_TOKEN_HERE:			 "Slack token",
+	SLACK_DOWNLOAD:				 "Download Slack Snippet",
 });

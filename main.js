@@ -4,7 +4,8 @@ define(function (require, exports, module) {
     "use strict";
 
     var dialogTemplate                   = require("text!templates/newSlackDialog.html"),
-    	settingsTemplate                 = require("text!templates/settingsDialog.html");
+    	settingsTemplate                 = require("text!templates/settingsDialog.html"),
+    	downloadTemplate                 = require("text!templates/downloadDialog.html");
 
     var CommandManager          = brackets.getModule("command/CommandManager"),
         DocumentManager         = brackets.getModule("document/DocumentManager"),
@@ -18,6 +19,8 @@ define(function (require, exports, module) {
 		FileUtils 				= brackets.getModule("file/FileUtils"),
 		FileSystem 				= brackets.getModule("filesystem/FileSystem"),
 		KeyBindingManager 		= brackets.getModule('command/KeyBindingManager');
+	
+	var NodeDomain     			= brackets.getModule("utils/NodeDomain");
 
     var Strings                 = require("strings");
 
@@ -26,6 +29,9 @@ define(function (require, exports, module) {
 
 	var settingsDialog;
     var $settingsDialog          = $();
+	
+	var downloadDialog;
+    var $downloadDialog          = $();
 
     var PREFIX                  = "slack-manager",
 		GM_PANEL                = PREFIX + ".panel",
@@ -36,6 +42,10 @@ define(function (require, exports, module) {
 	var settingsChannel;
 	var settingsToken;
 	var storedSettings;
+	
+	
+	var IMAGE_FILE_EXT 	= ['jpg','png','gif'];
+	var CODE_FILE_EXT 	= ['javascript','html','php'];
 
     /**
      * Push a snippet to slack
@@ -191,9 +201,9 @@ define(function (require, exports, module) {
 	/**
 	 * open the send snippet panel
 	 */
-    function openPanel() {
-		 dialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(dialogTemplate, Strings));
-         $dialog = dialog.getElement();
+    function openPanel() {	
+		dialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(dialogTemplate, Strings));
+        $dialog = dialog.getElement();
 
 		// get the current Project root and get the relative filename in the title
 		var basePath = ProjectManager.getProjectRoot()._path;
@@ -218,6 +228,10 @@ define(function (require, exports, module) {
 				token = $dialog.find("#slack-team").val();
 				// update the channels list!
 				changeChannels();
+			})
+			.on("click", "#slack-download-snippet", function() {
+				dialog.close();
+				openDownloadPanel();
 			});
     }
 
@@ -230,6 +244,105 @@ define(function (require, exports, module) {
 		);
 	}
 
+	/**
+	 * open the settings panel
+	 */
+	function openDownloadPanel() {
+		saveSnippet();
+				
+		downloadDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(downloadTemplate, Strings));
+        $downloadDialog = downloadDialog.getElement();
+		
+		var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
+		var codeTemplate	= '{{#codeSnippets}}<div class="slack-code"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
+		
+		getSnippetsList()
+		.done(function(filesByExt) {
+			console.log(filesByExt);
+			var imageSnippets 	= [];
+			var codeSnippets 	= [];
+			for (var i = 0; i < filesByExt.length; i++) {
+				if (IMAGE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
+					for (var j = 0; j < filesByExt[i].files.length; j++) {
+						imageSnippets.push(filesByExt[i].files[j]);	
+					}
+				} else if (CODE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
+					for (var j = 0; j < filesByExt[i].files.length; j++) {
+						codeSnippets.push(filesByExt[i].files[j]);	
+					}
+				}
+			}
+			
+			console.log('codeSnippets: ',codeSnippets);
+			
+			var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
+			var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
+			$downloadDialog.find('#image-snippets').html(imagesHTML);
+			$downloadDialog.find('#code-snippets').html(codeHTML);
+		});
+		
+		$downloadDialog
+			.on("click", ".slack-images", function() {
+				var urlFile 	= $(this).data('fullsrc');
+				var basePath 	= ProjectManager.getProjectRoot()._path;
+				var filename	= urlFile.substr(urlFile.lastIndexOf('/')+1);
+				FileSystem.showSaveDialog('Image Download',basePath,filename,function(err,file) {
+					if (!err) {
+						console.log('download to: '+file);
+						download(urlFile,file);
+					}
+				});
+			});
+	}
+	
+	function getSnippetsList() {
+		var result = $.Deferred();
+		if (token != "") {
+			$.post("https://slack.com/api/files.list", {
+				token: token
+			}, function(files) {
+				if (files.ok) {
+					files = files.files;
+					files = sortByFiletype(files);
+					result.resolve(files);
+				} else {
+					result.reject(files.error);
+				}
+			}).fail(function() {
+				result.reject("connection");
+			});
+		}
+		return result.promise();
+	}
+	
+	/**
+	 * sort files by file type 
+	 * @param   {Array} files array of file objects (must include .filetype)
+	 * @returns {Array} new file structure [[{type: '', files: []}]]
+	 */
+	function sortByFiletype(files) {	
+		files = files.sort(function (a,b) {
+			if (a.filetype > b.filetype) return 1;
+			return -1;
+		});		
+		
+		var filesByFile		= [];
+		var lastExt 		= files[0].filetype;
+		var cFiles			= [files[0]];
+		for (var i = 1; i < files.length; i++) {
+			if (files[i].filetype != lastExt) {
+				filesByFile.push({type: lastExt, files: cFiles});
+				cFiles = [files[i]];
+				lastExt = files[i].filetype;
+			} else {
+				cFiles.push(files[i]);	
+			}
+		}
+		filesByFile.push({type: lastExt, files: cFiles});
+		return filesByFile;
+	}
+	
+	
 	/**
 	 * open the settings panel
 	 */
@@ -413,6 +526,24 @@ define(function (require, exports, module) {
 			settingsFile = FileSystem.getFileForPath(settingsFile);
 	}
 
+	var downloadScript = new NodeDomain("slacksnippet", ExtensionUtils.getModulePath(module, "node/downloadFile"));
+
+    /**
+     * Download a url file to file in the filesystem
+     * @param {String} urlFile url
+     * @param {String} file    file global path
+     */
+    function download(urlFile,file) {
+		downloadScript.exec("downloadFile",urlFile,file)
+            .done(function () {
+                console.log(
+                    "file downloaded"
+                );
+            }).fail(function (err) {
+                console.error("error: ", err);
+            });
+    }	
+	
 	function init() {
 		 // Load compiled CSS of slack Manager
         ExtensionUtils.loadStyleSheet(module, "styles/slack-manager.css");
