@@ -253,7 +253,10 @@ define(function (require, exports, module) {
 		// list all teams (saved in the settings file) #slack-team
 		listTeams();
 		
-		showSnippets();		
+		var filesByExt;
+		showSnippets().done(function(data) {
+			filesByExt = data;
+		});
 		
 		$dialog
 			.on("click", ".slack-images", function() {
@@ -282,36 +285,75 @@ define(function (require, exports, module) {
 			.on("change", "#slack-team", function() {
 				token = $dialog.find("#slack-team").val();
 				// update the channels list!
-				showSnippets();
+				showSnippets().done(function(data) {
+					filesByExt = data;
+				});
+			})
+			.on("keyup", "#slack-download-search", function() {
+				searchSnippets($(this).val());
 			});
 		
+		function searchSnippets(query) {
+			if (query == '') {
+				listSnippets(filesByExt);
+				return;
+			}
+			var snippets = JSON.parse(JSON.stringify(filesByExt));
+			var keys = ['preview','url','title'];
+			for (var i = 0; i < snippets.length; i++) {
+				// important to go backwards (splice)
+				for (var j = snippets[i].files.length-1; j >= 0; j--) {
+					var snippet = snippets[i].files[j];
+					var remove = true;
+					for (var k = 0; k < keys.length; k++) {
+						if (keys[k] in snippet && snippet[keys[k]].indexOf(query) >= 0) {
+							remove = false;
+							break;
+						}
+					}
+					if (remove) {  
+						snippets[i].files.splice(j,1);	
+					}
+				}
+				var files = JSON.parse(JSON.stringify(snippets[i].files));
+			}
+			listSnippets(snippets);
+		}
 		
-		function showSnippets() {
+		
+		function showSnippets() {	
+			var result = $.Deferred();
+			getSnippetsList()
+			.done(function(files) {
+				listSnippets(files);
+				result.resolve(files);
+			});	
+			return result.promise();
+		}
+		
+		function listSnippets(snippets) {
 			var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
 			var codeTemplate	= '{{#codeSnippets}}<div class="slack-code" data-fullsrc="{{url}}"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
 			
-			getSnippetsList()
-			.done(function(filesByExt) {
-				console.log(filesByExt);
-				var imageSnippets 	= [];
-				var codeSnippets 	= [];
-				for (var i = 0; i < filesByExt.length; i++) {
-					if (IMAGE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
-						for (var j = 0; j < filesByExt[i].files.length; j++) {
-							imageSnippets.push(filesByExt[i].files[j]);	
-						}
-					} else if (CODE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
-						for (var j = 0; j < filesByExt[i].files.length; j++) {
-							codeSnippets.push(filesByExt[i].files[j]);	
-						}
+			var imageSnippets 	= [];
+			var codeSnippets 	= [];
+			for (var i = 0; i < snippets.length; i++) {
+				if (IMAGE_FILE_EXT.indexOf(snippets[i].type) >= 0) {
+					for (var j = 0; j < snippets[i].files.length; j++) {
+						imageSnippets.push(snippets[i].files[j]);	
+					}
+				} else if (CODE_FILE_EXT.indexOf(snippets[i].type) >= 0) {
+					for (var j = 0; j < snippets[i].files.length; j++) {
+						codeSnippets.push(snippets[i].files[j]);	
 					}
 				}
+			}
 
-				var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
-				var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
-				$dialog.find('#image-snippets').html(imagesHTML);
-				$dialog.find('#code-snippets').html(codeHTML);
-			});			
+			var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
+			var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
+			$dialog.find('#image-snippets').html(imagesHTML);
+			$dialog.find('#code-snippets').html(codeHTML);
+				
 		}
 	}
 	
