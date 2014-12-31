@@ -30,9 +30,6 @@ define(function (require, exports, module) {
 	var settingsDialog;
     var $settingsDialog          = $();
 	
-	var downloadDialog;
-    var $downloadDialog          = $();
-
     var PREFIX                  = "slack-manager",
 		GM_PANEL                = PREFIX + ".panel",
         TOGGLE_PANEL            = PREFIX + ".run";
@@ -45,7 +42,7 @@ define(function (require, exports, module) {
 	
 	
 	var IMAGE_FILE_EXT 	= ['jpg','png','gif'];
-	var CODE_FILE_EXT 	= ['javascript','html','php'];
+	var CODE_FILE_EXT 	= ['javascript','html','php','text','markdown'];
 
     /**
      * Push a snippet to slack
@@ -250,35 +247,15 @@ define(function (require, exports, module) {
 	function openDownloadPanel() {
 		saveSnippet();
 				
-		downloadDialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(downloadTemplate, Strings));
-        $downloadDialog = downloadDialog.getElement();
+		dialog  = Dialogs.showModalDialogUsingTemplate(Mustache.render(downloadTemplate, Strings));
+        $dialog = dialog.getElement();
+				
+		// list all teams (saved in the settings file) #slack-team
+		listTeams();
 		
-		var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
-		var codeTemplate	= '{{#codeSnippets}}<div class="slack-code" data-fullsrc="{{url}}"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
+		showSnippets();		
 		
-		getSnippetsList()
-		.done(function(filesByExt) {
-			var imageSnippets 	= [];
-			var codeSnippets 	= [];
-			for (var i = 0; i < filesByExt.length; i++) {
-				if (IMAGE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
-					for (var j = 0; j < filesByExt[i].files.length; j++) {
-						imageSnippets.push(filesByExt[i].files[j]);	
-					}
-				} else if (CODE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
-					for (var j = 0; j < filesByExt[i].files.length; j++) {
-						codeSnippets.push(filesByExt[i].files[j]);	
-					}
-				}
-			}
-						
-			var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
-			var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
-			$downloadDialog.find('#image-snippets').html(imagesHTML);
-			$downloadDialog.find('#code-snippets').html(codeHTML);
-		});
-		
-		$downloadDialog
+		$dialog
 			.on("click", ".slack-images", function() {
 				var urlFile 	= $(this).data('fullsrc');
 				var basePath 	= ProjectManager.getProjectRoot()._path;
@@ -293,7 +270,6 @@ define(function (require, exports, module) {
 			.on("click", ".slack-code", function() {
 				var urlFile 	= $(this).data('fullsrc');
 				download(urlFile,false,true).done(function(data) {
-					console.log('data: ',data);
 					var editor  = EditorManager.getCurrentFullEditor();
 					var curPos 	= editor.getCursorPos();
 					editor.document.replaceRange(
@@ -302,7 +278,41 @@ define(function (require, exports, module) {
 						curPos
 					);
 				});
+			})
+			.on("change", "#slack-team", function() {
+				token = $dialog.find("#slack-team").val();
+				// update the channels list!
+				showSnippets();
 			});
+		
+		
+		function showSnippets() {
+			var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
+			var codeTemplate	= '{{#codeSnippets}}<div class="slack-code" data-fullsrc="{{url}}"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
+			
+			getSnippetsList()
+			.done(function(filesByExt) {
+				console.log(filesByExt);
+				var imageSnippets 	= [];
+				var codeSnippets 	= [];
+				for (var i = 0; i < filesByExt.length; i++) {
+					if (IMAGE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
+						for (var j = 0; j < filesByExt[i].files.length; j++) {
+							imageSnippets.push(filesByExt[i].files[j]);	
+						}
+					} else if (CODE_FILE_EXT.indexOf(filesByExt[i].type) >= 0) {
+						for (var j = 0; j < filesByExt[i].files.length; j++) {
+							codeSnippets.push(filesByExt[i].files[j]);	
+						}
+					}
+				}
+
+				var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
+				var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
+				$dialog.find('#image-snippets').html(imagesHTML);
+				$dialog.find('#code-snippets').html(codeHTML);
+			});			
+		}
 	}
 	
 	function getSnippetsList() {
