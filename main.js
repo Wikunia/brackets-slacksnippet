@@ -5,7 +5,9 @@ define(function (require, exports, module) {
 
     var dialogTemplate                   = require("text!templates/newSlackDialog.html"),
     	settingsTemplate                 = require("text!templates/settingsDialog.html"),
-    	downloadTemplate                 = require("text!templates/downloadDialog.html");
+    	downloadTemplate                 = require("text!templates/downloadDialog.html"),
+    	imagesTemplate  			     = require("text!templates/imagesTemplate.html"),
+    	codeTemplate	                 = require("text!templates/codeTemplate.html");
 
     var CommandManager          = brackets.getModule("command/CommandManager"),
         DocumentManager         = brackets.getModule("document/DocumentManager"),
@@ -284,7 +286,7 @@ define(function (require, exports, module) {
 			})
 			.on("change", "#slack-team", function() {
 				token = $dialog.find("#slack-team").val();
-				// update the channels list!
+				// update filesByExt 
 				showSnippets().done(function(data) {
 					filesByExt = data;
 				});
@@ -293,6 +295,10 @@ define(function (require, exports, module) {
 				searchSnippets($(this).val());
 			});
 		
+		/**
+		 * Find query in filesByExt
+		 * @param {String} query the query
+		 */
 		function searchSnippets(query) {
 			if (query == '') {
 				listSnippets(filesByExt);
@@ -320,7 +326,10 @@ define(function (require, exports, module) {
 			listSnippets(snippets);
 		}
 		
-		
+		/**
+		 * Show all snippets and return them 
+		 * @returns {Array} alls snippets in fileByExt structure
+		 */
 		function showSnippets() {	
 			var result = $.Deferred();
 			getSnippetsList()
@@ -331,10 +340,11 @@ define(function (require, exports, module) {
 			return result.promise();
 		}
 		
+		/**
+		 * List special snipptes
+		 * @param {Array} snippets list of snippets in fileByExt structure
+		 */
 		function listSnippets(snippets) {
-			var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
-			var codeTemplate	= '{{#codeSnippets}}<div class="slack-code" data-fullsrc="{{url}}"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
-			
 			var imageSnippets 	= [];
 			var codeSnippets 	= [];
 			for (var i = 0; i < snippets.length; i++) {
@@ -353,10 +363,13 @@ define(function (require, exports, module) {
 			var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
 			$dialog.find('#image-snippets').html(imagesHTML);
 			$dialog.find('#code-snippets').html(codeHTML);
-				
 		}
 	}
 	
+	/**
+	 * Get all snippets and sort them by filetype
+	 * @returns {Array} snippets in fileByExt structure
+	 */
 	function getSnippetsList() {
 		var result = $.Deferred();
 		if (token != "") {

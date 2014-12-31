@@ -57,6 +57,12 @@
 		
 }
 
+#slack-snippets-container {
+	height: 300px;	
+	overflow-y: auto;
+}
+
 #slack-download-search {
 		width: 100%;
 }
+35--0
