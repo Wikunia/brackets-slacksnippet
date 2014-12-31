@@ -31,17 +31,36 @@ maxerr: 50, node: true */
     var os = require("os");
 	var fs = require('fs');
 	var https = require('https');
-
         
-    function downloadFile(urlFile,file) {
-		console.log('urlFile: ',urlFile);
+	function downloadFile(urlFile,file,returnB,callback) {	
+		console.log('download file: '+urlFile);
+		console.log('return: ',returnB);
 		console.log('file: ',file);
 		
-		var file = fs.createWriteStream(file);
-		var request = https.get(urlFile, function(response) {
-		  response.pipe(file);
-		});
-    }
+		
+		if (file) {
+			file = fs.createWriteStream(file);
+		}
+		
+		https.get(urlFile, function(response) {		
+			if (file) {
+				response.pipe(file);
+			}
+			if (returnB) {
+				var body = '';
+				response.on('data', function(chunk) {
+					body += chunk;
+				});
+				response.on('end', function() {
+					callback(null,body);
+				});
+			} else {
+				callback(null,'');
+			}
+		}).on('error', function(e) {
+			callback(e.message);
+		});	
+    }	
     
     /**
      * Initializes the test domain with several test commands.
@@ -55,7 +74,7 @@ maxerr: 50, node: true */
             "slacksnippet",     // domain name
             "downloadFile",   	// command name
             downloadFile,   	// command handler function
-            false		        // this command is synchronous in Node
+            true	        // this command is asynchronous in Node
         );
     }
     

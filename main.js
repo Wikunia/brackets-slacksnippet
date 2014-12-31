@@ -254,11 +254,10 @@ define(function (require, exports, module) {
         $downloadDialog = downloadDialog.getElement();
 		
 		var imagesTemplate 	= '{{#imageSnippets}}<img class="slack-images" data-fullsrc="{{url}}" src="{{thumb_80}}" />{{/imageSnippets}}';
-		var codeTemplate	= '{{#codeSnippets}}<div class="slack-code"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
+		var codeTemplate	= '{{#codeSnippets}}<div class="slack-code" data-fullsrc="{{url}}"><b class="slack-code-title">{{{title}}}</b><br><pre>{{preview}}</pre></div>{{/codeSnippets}}';
 		
 		getSnippetsList()
 		.done(function(filesByExt) {
-			console.log(filesByExt);
 			var imageSnippets 	= [];
 			var codeSnippets 	= [];
 			for (var i = 0; i < filesByExt.length; i++) {
@@ -272,9 +271,7 @@ define(function (require, exports, module) {
 					}
 				}
 			}
-			
-			console.log('codeSnippets: ',codeSnippets);
-			
+						
 			var imagesHTML 	= Mustache.render(imagesTemplate, {imageSnippets: imageSnippets});
 			var codeHTML	= Mustache.render(codeTemplate, {codeSnippets: codeSnippets});
 			$downloadDialog.find('#image-snippets').html(imagesHTML);
@@ -291,6 +288,19 @@ define(function (require, exports, module) {
 						console.log('download to: '+file);
 						download(urlFile,file);
 					}
+				});
+			})
+			.on("click", ".slack-code", function() {
+				var urlFile 	= $(this).data('fullsrc');
+				download(urlFile,false,true).done(function(data) {
+					console.log('data: ',data);
+					var editor  = EditorManager.getCurrentFullEditor();
+					var curPos 	= editor.getCursorPos();
+					editor.document.replaceRange(
+						data,
+						curPos,
+						curPos
+					);
 				});
 			});
 	}
@@ -530,18 +540,24 @@ define(function (require, exports, module) {
 
     /**
      * Download a url file to file in the filesystem
-     * @param {String} urlFile url
-     * @param {String} file    file global path
+     * @param   {String}   urlFile         url
+     * @param   {String}   file            file global path
+     * @param   {Boolean}  [returnB=false] true => return the downloaded data
+     * @returns {Deferred} resolve the data
      */
-    function download(urlFile,file) {
-		downloadScript.exec("downloadFile",urlFile,file)
-            .done(function () {
-                console.log(
-                    "file downloaded"
-                );
-            }).fail(function (err) {
-                console.error("error: ", err);
-            });
+    function download(urlFile,file,returnB) {
+		returnB = (typeof returnB === "undefined") ? false : returnB;
+		
+		var result = $.Deferred();  
+		downloadScript.exec("downloadFile",urlFile,file,returnB)
+		.done(function (data) {
+			console.log('data: ', data);
+			result.resolve(data);
+		})
+		.fail(function(error) {
+			result.reject(error);
+		});
+		return result.promise();
     }	
 	
 	function init() {
