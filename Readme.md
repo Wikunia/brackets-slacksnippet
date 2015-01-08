@@ -22,4 +22,4 @@ Creative Commons v3.0
 
 [http://creativecommons.org/licenses/by/3.0/](http://creativecommons.org/licenses/by/3.0/)
 
-Thanks for the cool icons [https://icomoon.io](icomoon)!
+Thanks for the cool icons [icomoon](https://icomoon.io)!
