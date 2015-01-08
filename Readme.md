@@ -21,3 +21,5 @@ Your token will be saved in a file inside your `documents` folder. (It isn't enc
 Creative Commons v3.0
 
 [http://creativecommons.org/licenses/by/3.0/](http://creativecommons.org/licenses/by/3.0/)
+
+Thanks for the cool icons [https://icomoon.io](icomoon)!
