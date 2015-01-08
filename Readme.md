@@ -10,6 +10,11 @@ If you find a bug please [open an issue](https://github.com/Wikunia/brackets-sla
 Select your code snippet and use the shortcut `Alt+S` to push your code to slack. ("Snip it!")    
 Your token will be saved in a file inside your `documents` folder. (It isn't encrypted)
 
+## Upload Dialog
+![brackets-slacksnippet-upload-dialog](https://cloud.githubusercontent.com/assets/4931746/5667317/14f36594-9767-11e4-86bf-7c03a894cfc5.png)
+
+## Download Dialog (v0.3.0)
+![brackets-slacksnippet-download-dialog](https://cloud.githubusercontent.com/assets/4931746/5667316/14f24dd0-9767-11e4-9ab3-2e1515c889ac.png)
 
 
 ### License
