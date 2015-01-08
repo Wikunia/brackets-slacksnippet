@@ -263,17 +263,28 @@ define(function (require, exports, module) {
 		$dialog
 			.on("click", ".slack-images", function() {
 				var urlFile 	= $(this).data('fullsrc');
-				var basePath 	= ProjectManager.getProjectRoot()._path;
-				var filename	= urlFile.substr(urlFile.lastIndexOf('/')+1);
-				FileSystem.showSaveDialog('Image Download',basePath,filename,function(err,file) {
-					if (!err) {
-						console.log('download to: '+file);
-						download(urlFile,file);
-					}
-				});
+				downloadFile(urlFile,"Image Download");
 			})
 			.on("click", ".slack-code", function() {
-				var urlFile 	= $(this).data('fullsrc');
+				console.log('single click');
+				var thisEle = $(this);
+				var urlFile = thisEle.data('fullsrc');
+				console.log('urlFile: '+urlFile);
+				download(urlFile,false,true).done(function(data) {
+					console.log(data);
+					thisEle.children('.preview').text(data.replace(/\r\n/g,'\n'));
+				});
+			})
+			.on("dblclick", ".slack-code", function() {
+				var urlFile = $(this).data('fullsrc');
+				downloadFile(urlFile,"Snippet Download");
+			})
+			.on("click", ".icon-download", function() {
+				var urlFile = $(this).parent(".slack-code").data('fullsrc');
+				downloadFile(urlFile,"Snippet Download");
+			})
+			.on("click", ".icon-direct-paste", function() {
+				var urlFile 	= $(this).parent(".slack-code").data('fullsrc');
 				download(urlFile,false,true).done(function(data) {
 					var editor  = EditorManager.getCurrentFullEditor();
 					var curPos 	= editor.getCursorPos();
@@ -294,6 +305,22 @@ define(function (require, exports, module) {
 			.on("keyup", "#slack-download-search", function() {
 				searchSnippets($(this).val());
 			});
+		
+		/**
+		 * Download a file
+		 * @param {String} urlFile    file url
+		 * @param {String} dialogName name of the dialog
+		 */
+		function downloadFile(urlFile,dialogName) {
+			var basePath 	= ProjectManager.getProjectRoot()._path;
+			var filename	= urlFile.substr(urlFile.lastIndexOf('/')+1);
+			FileSystem.showSaveDialog(dialogName,basePath,filename,function(err,file) {
+				if (!err) {
+					console.log('download to: '+file);
+					download(urlFile,file);
+				}
+			});	
+		}
 		
 		/**
 		 * Find query in filesByExt

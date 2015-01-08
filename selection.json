@@ -1,0 +1,87 @@
+{
+	"IcoMoonType": "selection",
+	"icons": [
+		{
+			"icon": {
+				"paths": [
+					"M512 576l256-256h-192v-256h-128v256h-192zM744.726 471.272l-71.74 71.742 260.080 96.986-421.066 157.018-421.066-157.018 260.080-96.986-71.742-71.742-279.272 104.728v256l512 192 512-192v-256z"
+				],
+				"attrs": [],
+				"tags": [
+					"download",
+					"save",
+					"store",
+					"arrow"
+				],
+				"defaultCode": 57650,
+				"grid": 16
+			},
+			"attrs": [],
+			"properties": {
+				"id": 371,
+				"order": 1,
+				"prevSize": 32,
+				"code": 59744,
+				"ligatures": "download, save",
+				"name": "download"
+			},
+			"setIdx": 0,
+			"iconIdx": 96
+		},
+		{
+			"icon": {
+				"paths": [
+					"M0 64h1024v128h-1024zM384 256h640v128h-640zM384 448h640v128h-640zM384 640h640v128h-640zM0 832h1024v128h-1024zM0 704v-384l256 192z"
+				],
+				"attrs": [],
+				"tags": [
+					"indent-increase",
+					"wysiwyg"
+				],
+				"defaultCode": 58483,
+				"grid": 16
+			},
+			"attrs": [],
+			"properties": {
+				"id": 1259,
+				"order": 4,
+				"prevSize": 32,
+				"code": 60027,
+				"ligatures": "indent-increase, wysiwyg29",
+				"name": "indent-increase"
+			},
+			"setIdx": 0,
+			"iconIdx": 379
+		}
+	],
+	"height": 1024,
+	"metadata": {
+		"name": "icomoon"
+	},
+	"preferences": {
+		"showGlyphs": true,
+		"showQuickUse": true,
+		"showQuickUse2": true,
+		"showSVGs": true,
+		"fontPref": {
+			"prefix": "icon-",
+			"metadata": {
+				"fontFamily": "icomoon"
+			},
+			"metrics": {
+				"emSize": 1024,
+				"baseline": 6.25,
+				"whitespace": 50
+			}
+		},
+		"imagePref": {
+			"prefix": "icon-",
+			"png": true,
+			"useClassSelector": true,
+			"color": 4473924,
+			"bgColor": 16777215
+		},
+		"historySize": 100,
+		"showCodes": true
+	}
+}
