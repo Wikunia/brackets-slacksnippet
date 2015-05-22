@@ -266,12 +266,9 @@ define(function (require, exports, module) {
 				downloadFile(urlFile,"Image Download");
 			})
 			.on("click", ".slack-code", function() {
-				console.log('single click');
 				var thisEle = $(this);
 				var urlFile = thisEle.data('fullsrc');
-				console.log('urlFile: '+urlFile);
 				download(urlFile,false,true).done(function(data) {
-					console.log(data);
 					thisEle.children('.preview').text(data.replace(/\r\n/g,'\n'));
 				});
 			})
@@ -316,7 +313,6 @@ define(function (require, exports, module) {
 			var filename	= urlFile.substr(urlFile.lastIndexOf('/')+1);
 			FileSystem.showSaveDialog(dialogName,basePath,filename,function(err,file) {
 				if (!err) {
-					console.log('download to: '+file);
 					download(urlFile,file);
 				}
 			});	
@@ -636,14 +632,6 @@ define(function (require, exports, module) {
      * @param   {String}   file            file global path
      * @param   {Boolean}  [returnB=false] true => return the downloaded data
      * @returns {Deferred} resolve the data
-     */
-	
-    /**
-     * @access private
-     * @param   {String}   urlFile         [[Description]]
-     * @param   {String}   file            [[Description]]
-     * @param   {[[Type]]} [returnB=false] [[Description]]
-     * @returns {[[Type]]} [[Description]]
      */
     function download(urlFile,file,returnB) {
 		returnB = (typeof returnB === "undefined") ? false : returnB;
