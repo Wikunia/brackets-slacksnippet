@@ -637,13 +637,20 @@ define(function (require, exports, module) {
      * @param   {Boolean}  [returnB=false] true => return the downloaded data
      * @returns {Deferred} resolve the data
      */
+	
+    /**
+     * @access private
+     * @param   {String}   urlFile         [[Description]]
+     * @param   {String}   file            [[Description]]
+     * @param   {[[Type]]} [returnB=false] [[Description]]
+     * @returns {[[Type]]} [[Description]]
+     */
     function download(urlFile,file,returnB) {
 		returnB = (typeof returnB === "undefined") ? false : returnB;
 		
 		var result = $.Deferred();  
 		downloadScript.exec("downloadFile",urlFile,file,returnB)
 		.done(function (data) {
-			console.log('data: ', data);
 			result.resolve(data);
 		})
 		.fail(function(error) {
