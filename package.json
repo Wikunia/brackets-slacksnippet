@@ -3,7 +3,7 @@
     "title": "Slack Snippet",
     "description": "Push code snippets to a slack channel",
     "homepage": "https://github.com/Wikunia/brackets-slacksnippet",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "author": "Ole Kröger",
     "license": "Creative Commons v3.0",
     "engines": {
