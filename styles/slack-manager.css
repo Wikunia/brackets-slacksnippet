@@ -66,6 +66,13 @@
 	float: right;	
 }
 
+.btn-cancel {
+    float: right;
+}
+#slack-cancel,#slack-cancel-settings {
+    background-color: #a22;   
+}
+
 .clear {
 	clear: both;	
 }

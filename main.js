@@ -231,7 +231,10 @@ define(function (require, exports, module) {
 			.on("click", "#slack-download-snippet", function() {
 				dialog.close();
 				openDownloadPanel();
-			});
+			})   
+            .on("click", "#slack-cancel", function() {
+                dialog.close();
+            });
     }
 
 	/**
@@ -470,7 +473,10 @@ define(function (require, exports, module) {
 		$settingsDialog
             .on("click", "#slack-addToken", function() {
                 addTokenInput();
-           });
+            })
+            .on("click", "#slack-cancel-settings", function() {
+                settingsDialog.close();
+            });
 	}
 
 	function listTeams() {
